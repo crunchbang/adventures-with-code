@@ -1,7 +1,7 @@
 ---
 title: "Bug Story: It's not you, it's the environment"
 date: 2020-05-03T19:47:13+05:30
-description: "**TTL**s, SEGFAULTs and a trip down the deployment pipeline."
+description: "TTL, SEGFAULT and a trip down the deployment pipeline."
 draft: false
 tldr: "Trust no-one. RTFM!"
 ---
