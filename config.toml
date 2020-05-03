@@ -1,0 +1,4 @@
+baseURL = "https://crunchbang.github.io/"
+languageCode = "en-us"
+title = "Adventures with poorly tested code"
+theme = "archie"
