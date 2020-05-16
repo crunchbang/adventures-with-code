@@ -132,4 +132,4 @@ its contents. All for want of a `-o` flag.
 * Always be ready to dig further. You will most definitely end up learning a lot
   with a good story to boot.
 
-Ping me with your thoughts and comments. 
+Ping me your thoughts and comments. 
