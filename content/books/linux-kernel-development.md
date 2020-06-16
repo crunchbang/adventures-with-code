@@ -9,6 +9,7 @@ description: By Robert Love
 # Notes
 
 A process begins it life with fork
+
 fork() [Create a copy of the current running process] -> exec() [Load a binary into memory] -> exit()
 Metadata about each process is stored in a task struct. Info about all procs are maintained in a linkedlist called the tasklist.
 thread_info struct is present at the bottom of the stack (for stacks that grow down)
