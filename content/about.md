@@ -1,6 +1,6 @@
 ---
 title: "About"
-date: 2020-05-16T22:10:09+05:30
+date: 2020-06-16T16:10:09+05:30
 draft: false
 ---
 
@@ -8,7 +8,7 @@ draft: false
 
 I'm a programmer from a [small town](https://en.wikipedia.org/wiki/Muvattupuzha) in Kerala, in the southern part of India. 
 
-I'm currently tinkering with a wide range of systems at a cloud telephony startup in Bangalore!
+I'm currently tinkering with a wide range of systems at a cloud telephony startup in Bangalore.
 
 Find me around the web under the following handles:
 * [stackoverflow/athul.sure](https://stackoverflow.com/users/3624795/athul-sure)
