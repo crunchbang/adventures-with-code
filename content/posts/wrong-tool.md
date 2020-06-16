@@ -70,7 +70,7 @@ We couldn't use this solution because our services had some design decisions bak
  
 # Lessons Learned
 * Your problem does not exist in a vacuum. Your possible solutions would be constrained by the environment you operate in.
-* Technical decisions, especially int the context of services, have long term repercussions that would influence the enhancements and modifications that could be carried out on it.
+* Technical decisions, especially in the context of services, have long term repercussions that would influence the enhancements and modifications that could be carried out on it.
 * Be realistic about the effort involved in implementing the perfect solution, in view of the time constraints - job Queues would've been perfect, but an optimized Aerospike setup was the next best option.
 * Know when to stop. Optimization are an unending rabbit hole.
 * Prefer clarity over cleverness *wherever possible*.
