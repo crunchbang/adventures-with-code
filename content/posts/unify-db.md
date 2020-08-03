@@ -1,5 +1,5 @@
 ---
-title: "A tale of two DBs"
+title: "A Tale Of Two DBs"
 date: 2020-07-24T00:03:32+05:30
 draft: false
 description: "Joining the un-joinable"
