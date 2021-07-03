@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://crunchbang.github.io/posts/unify-db/</loc>
+    <lastmod>2020-07-24T00:03:32+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/</loc>
+    <lastmod>2020-07-24T00:03:32+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/posts/</loc>
+    <lastmod>2020-07-24T00:03:32+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/posts/books/</loc>
+    <lastmod>2020-06-16T17:11:27+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/about/</loc>
+    <lastmod>2020-06-16T17:11:27+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/books/</loc>
+    <lastmod>2020-06-16T16:10:46+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/books/linux-kernel-development/</loc>
+    <lastmod>2020-06-16T16:10:46+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/posts/wrong-tool/</loc>
+    <lastmod>2020-05-16T15:49:17+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/posts/bug-ttl/</loc>
+    <lastmod>2020-05-03T19:47:13+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/posts/hello-world/</loc>
+    <lastmod>2020-05-03T15:14:05+05:30</lastmod>
+  </url><url>
+    <loc>https://crunchbang.github.io/tags/</loc>
+  </url>
+</urlset>

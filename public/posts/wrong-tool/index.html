@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Wrong Tool For The Job: Concurrent Queues with Aerospike - Adventures with poorly tested code</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Abusing aerospike for fun &amp; profit!" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="Wrong Tool For The Job: Concurrent Queues with Aerospike" />
+<meta property="og:description" content="Abusing aerospike for fun &amp; profit!" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://crunchbang.github.io/posts/wrong-tool/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2020-05-16T15:49:17+05:30" />
+<meta property="article:modified_time" content="2020-05-16T15:49:17+05:30" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Wrong Tool For The Job: Concurrent Queues with Aerospike"/>
+<meta name="twitter:description" content="Abusing aerospike for fun &amp; profit!"/>
+<script src="https://crunchbang.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://crunchbang.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://crunchbang.github.io/css/main.2f9b5946627215dc1ae7fa5f82bfc9cfcab000329136befeea5733f21e77d68f.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://crunchbang.github.io/">Adventures with poorly tested code</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/posts">All posts</a>
+		
+		<a href="/books">Books</a>
+		
+		<a href="/about">About</a>
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">Wrong Tool For The Job: Concurrent Queues with Aerospike</h1>
+			<div class="meta">Posted on May 16, 2020</div>
+		</div>
+		
+		<div class="tldr">
+			<strong>tl;dr:</strong>
+			The right tool is relative!
+		</div>
+
+		<section class="body">
+			<h1 id="if-all-you-have-is-a-hammer---">If all you have is a hammer . . .</h1>
+<p>Organizational choices and system architecture sometimes forces you to use sub-optimal tools for a problem. In fact, this is part of the challenge that work throws at you -  having to retrofit or abuse tools to get the job done.</p>
+<p>If you always had the right set of tools, what fun would life be? This is one such problem.</p>
+<h1 id="the-problem">The Problem</h1>
+<p>We had an antiquated use case which allowed customers to create a deferred list of jobs. These jobs would then be processed based on API requests from the customer&rsquo;s end. These lists would usually range from about 100 - 100000 jobs. We also provided a provision whereby the customer could trigger multiple requests in parallel to enable concurrent processing of these jobs. The original design dumped these jobs into MySQL, given that these jobs had to be persisted indefinitely until a trigger was detected.</p>
+<p>Stepping back from the nitty-gritty details, you can see that this is in essence a concurrent queue modeled on MySQL. The original implementation was not optimized for our traffic and it suffered from race conditions. We were handling a level of traffic which had caused DB outages in the past, so we did not want to lean on MySQL too much.</p>
+<p>Given the scale of the traffic, the criticality of the DB to serve our operations, and the sensitivity of this use-case to latency, it was decided that Aersopike would be used as the primary data store instead of MySQL. As I&rsquo;d mentioned in my previous post, we use Aerospike A LOT - mostly because it&rsquo;s blazing fast and scalable, but also because it&rsquo;s free. We have a data sync mechanism that syncs data from Aerospike to MySQL once the records have been processed.</p>
+<p>Data stores were never meant to be used as a job queue and it required some effort to get Aerospike to do the same.</p>
+<h1 id="the-fcfs-way">The FCFS Way</h1>
+<p>The straightforward way is to implement a First Come First Server (FCFS) system whereby each incoming request would find the first unprocessed job, reserve it, and then proceed with its processing.</p>
+<p>In a concurrent environment, whenever there&rsquo;s a two step process to reserve a job, there&rsquo;s bound to be race conditions - two requests could come up on the same job, reserve them, and then proceed with the processing of the same job. Even if we were to look past the race condition, this approach would take <strong>O(N)</strong> time to service to request in the worst case, with <strong>N</strong> being the total number of jobs in the queue. Ideally, we&rsquo;d prefer to have a single operation to reserve the job.</p>
+<p><img src="/image-1.png" alt="FCFS"></p>
+<h1 id="the-id-store">The ID Store</h1>
+<p>To prevent each request traversing the entire length of the job queue we set up a job <code>ID Store</code> which contains the list of all unprocessed jobs.</p>
+<p>This was implemented in Aerospike using the list aggregate type,  which we used to store the list of unprocessed job IDs. List pop operation (provided by Aerospike) allowed us to get a Job ID while still ensuring isolation between requests. In addition, the jobs were indexed based on job IDs for faster access.</p>
+<p>Thus each request would first pop off from the <code>ID store</code> and select the corresponding job from the jobs set. This has the dual benefit of avoiding race conditions by leaning on the storage engine to ensure isolation, and decreasing the worst case job assignment complexity to <strong>O(1)</strong>.</p>
+<p><img src="/image-2.png" alt="ID Store"></p>
+<p>The only downside here is the Aerospike record limit. Each record in Aerospike is like a row in a SQL DB and Aerospike has a (configurable) limit on the size of each record. Unlucky for me, this limit was set at <code>128KB</code> in our system. If we assume each job ID to be <code>8B</code>, then we can accommodate only 16000 IDs per record.</p>
+<p>Can we do better?</p>
+<h1 id="the-token-store-optimization">The Token Store Optimization</h1>
+<p>We had to store the list of job IDs because they&rsquo;re usually non-contiguous numeric identifiers. We can forego this list, if we assign sequential token IDs to each job. This indexed field provides an alternative way to refer to jobs within a set. The <code>ID Store</code>, which we&rsquo;ll now call the <code>Token Store</code>, will contain the token ID of the next job to be processed. You can think of it as a pointer to the job queue. This will help us tide over the record size limitations.</p>
+<p>To reserve a job, a request would get the current token ID in the <code>Token Store</code>, fetch the corresponding record from the job set and then increment the token value so that it points to the next unprocessed job.</p>
+<p>While this looks efficient, it brings back the inevitable race condition - two jobs could read the same value and reserve the same job. What we need is an atomic operation to deal with the token ID.</p>
+<p>Aersopike provides the facility to define <strong>User Defined Functions(UDF)</strong> in Lua which allows us to define new functions that are guaranteed to be atomic by the storage engine. So, we defined a UDF to implement the read-increment-write operation which would read the token value, increment it, write the incremented value, and return the old value. Thus, each incoming request would invoke the read-increment-write UDF on <code>Token Store</code> to get the token ID, and would use this ID to get the corresponding job.</p>
+<p>We&rsquo;ve thus managed to stick to <strong>O(1)</strong> for job assignment while cutting down the space requirement of the list.</p>
+<p><img src="/image-3.png" alt="Token Store"></p>
+<h1 id="drawbacks">Drawbacks</h1>
+<p>The primary downside is that we have no way to ensure fault tolerance. If a request, which reserved a job, dies then we have no way to put that job back into the pool of reserved jobs. Thus the optimization might not be useful in the general context, but was acceptable for our specific use-case.</p>
+<h1 id="alternatives">Alternatives</h1>
+<h2 id="using-a-sql-db">Using a SQL DB</h2>
+<p>Aerospike is a NoSQL datastore and thus do not provide the rich set of operations made available by SQL. As outlined in this <a href="link:https://dba.stackexchange.com/questions/98311/best-way-to-implement-concurrent-table-based-queue?newreg=fdb55e93bbf64b1ca64778fd25518934">answer on Database Administrator</a>, SQL databases like MySQL enables us to use a combination of <code>Transactions</code> and <code>SELECT FOR UPDATE</code> to achieve the same result, albeit with a slightly higher performance penalty.</p>
+<p>We couldn&rsquo;t use it for our use-case as our MySQL DB was <em>far too</em> precious to be put under heavy load from such a bursty workflow.</p>
+<h2 id="using-a-message-queue">Using a Message Queue</h2>
+<p>A simple persistent message queue like <a href="https://beanstalkd.github.io/">Beanstalkd</a> would&rsquo;ve been a perfect fit for this problem. Message Queues have the concept of tubes, which provides a high level way to group messages, which could be used for organizing jobs from different customers into different tubes. They also provide facilities like delays, whereby a job is put back into the queue if the reserved consumer has not responded withing a stipulated time frame, which would take care of the fault tolerance aspect.</p>
+<p>We couldn&rsquo;t use this solution because our services had some design decisions baked in, which made integrating a message queue into the flow a non-trivial exercise.</p>
+<h1 id="lessons-learned">Lessons Learned</h1>
+<ul>
+<li>Your problem does not exist in a vacuum. Your possible solutions would be constrained by the environment you operate in.</li>
+<li>Technical decisions, especially in the context of services, have long term repercussions that would influence the enhancements and modifications that could be carried out on it.</li>
+<li>Be realistic about the effort involved in implementing the perfect solution, in view of the time constraints - job Queues would&rsquo;ve been perfect, but an optimized Aerospike setup was the next best option.</li>
+<li>Know when to stop. Optimization are an unending rabbit hole.</li>
+<li>Prefer clarity over cleverness <em>wherever possible</em>.</li>
+</ul>
+<p>This blog post is my explanation for future maintainers of my code as to how things reached the state they are in now. I did what had to be done. :P</p>
+<p>Ping me your thoughts and comments.</p>
+<p>Check out <a href="https://www.aerospike.com/">Aerospike</a> and <a href="https://beanstalkd.github.io/">Beanstalkd</a>, if you haven&rsquo;t already!</p>
+<p>All diagrams were created using <a href="https://sketchviz.com/new">Sketchviz</a></p>
+
+		</section>
+
+		<div class="post-tags">
+			
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+<hr><a class="soc" href="https://github.com/crunchbang" title="Github"><i data-feather="github"></i></a>|<a class="soc" href="https://twitter.com/hashb42" title="Twitter"><i data-feather="twitter"></i></a>|<a class="soc" href="https://www.linkedin.com/in/athul-suresh-572622147/" title="LinkedIn"><i data-feather="linkedin"></i></a>|⚡️
+	2021  <a href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+</footer>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-165415128-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+<script>
+      feather.replace()
+</script></div>
+    </body>
+</html>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Adventures with poorly tested code</title>
+    <link>https://crunchbang.github.io/posts/</link>
+    <description>Recent content in Posts on Adventures with poorly tested code</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 24 Jul 2020 00:03:32 +0530</lastBuildDate><atom:link href="https://crunchbang.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>A Tale Of Two DBs</title>
+      <link>https://crunchbang.github.io/posts/unify-db/</link>
+      <pubDate>Fri, 24 Jul 2020 00:03:32 +0530</pubDate>
+      
+      <guid>https://crunchbang.github.io/posts/unify-db/</guid>
+      <description>Background Work always manages to throw interesting problems my way and this one was particularly interesting. Our telephone server infrastructure and the associated cloud services were spread across two AWS regions - Singapore &amp;amp; Mumbai. This was primarily done to comply with Indian Data Protection Laws which mandated that customer data associated with some critical areas of business must stay within the country. We had run these two regions as independent entities, with code changes being deployed uniformly across them.</description>
+    </item>
+    
+    <item>
+      <title>/books</title>
+      <link>https://crunchbang.github.io/posts/books/</link>
+      <pubDate>Tue, 16 Jun 2020 17:11:27 +0530</pubDate>
+      
+      <guid>https://crunchbang.github.io/posts/books/</guid>
+      <description>I am one of those people who need to write things down to fully understand and assimilate a foreign piece of information. Writing forces me to put into words that abstract mass of obscure blob of thought which I manifest into existence whenever I encounter a new topic. It helps me structure my understanding, and often times makes me aware of gaping holes in my understanding of the topic. Naturally, I take copious amounts of notes whenever I read a technical book / paper.</description>
+    </item>
+    
+    <item>
+      <title>Wrong Tool For The Job: Concurrent Queues with Aerospike</title>
+      <link>https://crunchbang.github.io/posts/wrong-tool/</link>
+      <pubDate>Sat, 16 May 2020 15:49:17 +0530</pubDate>
+      
+      <guid>https://crunchbang.github.io/posts/wrong-tool/</guid>
+      <description>If all you have is a hammer . . . Organizational choices and system architecture sometimes forces you to use sub-optimal tools for a problem. In fact, this is part of the challenge that work throws at you - having to retrofit or abuse tools to get the job done.
+If you always had the right set of tools, what fun would life be? This is one such problem.
+The Problem We had an antiquated use case which allowed customers to create a deferred list of jobs.</description>
+    </item>
+    
+    <item>
+      <title>Bug Story: It&#39;s not you, it&#39;s the environment</title>
+      <link>https://crunchbang.github.io/posts/bug-ttl/</link>
+      <pubDate>Sun, 03 May 2020 19:47:13 +0530</pubDate>
+      
+      <guid>https://crunchbang.github.io/posts/bug-ttl/</guid>
+      <description>It all started with a deployment to the production cluster.
+It always does. The worst things happen when you deploy to prod.
+Background In our production cluster, we use Aerospike as the primary data store, with data being synced to MySQL for long term storage. For the uninitiated, Aerospike is a high speed, distributed key-value NoSQL database which provides a lot of cool features. Check it out if you haven&amp;rsquo;t already.</description>
+    </item>
+    
+    <item>
+      <title>Hello World</title>
+      <link>https://crunchbang.github.io/posts/hello-world/</link>
+      <pubDate>Sun, 03 May 2020 15:14:05 +0530</pubDate>
+      
+      <guid>https://crunchbang.github.io/posts/hello-world/</guid>
+      <description>Hello!
+Is there anybody out there?
+Nod if you can hear me
+This blog is my poor attempt to document all the werid bugs I have encountered in production and the valuable lessons they&amp;rsquo;ve taught me.
+It took me 5 attempts just to get this page up and running. Hmm. There must be story here that I can stretch to a blog post.</description>
+    </item>
+    
+  </channel>
+</rss>

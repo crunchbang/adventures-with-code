@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Books on Adventures with poorly tested code</title>
+    <link>https://crunchbang.github.io/books/</link>
+    <description>Recent content in Books on Adventures with poorly tested code</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 16 Jun 2020 16:10:46 +0530</lastBuildDate><atom:link href="https://crunchbang.github.io/books/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Linux Kernel Development</title>
+      <link>https://crunchbang.github.io/books/linux-kernel-development/</link>
+      <pubDate>Tue, 16 Jun 2020 16:10:46 +0530</pubDate>
+      
+      <guid>https://crunchbang.github.io/books/linux-kernel-development/</guid>
+      <description>This book had been on my TO-READ list for a long time. It came up again while I was perusing Dan Luu&amp;rsquo;s Programming book list. I&amp;rsquo;ve always wanted to look behind the curtains and see how the magic worked, so I finally bought it.
+I used bootlin to read through Linux 5.7.2 source. They provide a really good search system and linked definitions. The book describes kernel version 2.6. You might want to keep this site open to see how things have changed since then.</description>
+    </item>
+    
+  </channel>
+</rss>

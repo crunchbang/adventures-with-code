@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>A Tale Of Two DBs - Adventures with poorly tested code</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Joining the un-joinable" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="A Tale Of Two DBs" />
+<meta property="og:description" content="Joining the un-joinable" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://crunchbang.github.io/posts/unify-db/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2020-07-24T00:03:32+05:30" />
+<meta property="article:modified_time" content="2020-07-24T00:03:32+05:30" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="A Tale Of Two DBs"/>
+<meta name="twitter:description" content="Joining the un-joinable"/>
+<script src="https://crunchbang.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://crunchbang.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://crunchbang.github.io/css/main.2f9b5946627215dc1ae7fa5f82bfc9cfcab000329136befeea5733f21e77d68f.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://crunchbang.github.io/">Adventures with poorly tested code</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/posts">All posts</a>
+		
+		<a href="/books">Books</a>
+		
+		<a href="/about">About</a>
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">A Tale Of Two DBs</h1>
+			<div class="meta">Posted on Jul 24, 2020</div>
+		</div>
+		
+		<div class="tldr">
+			<strong>tl;dr:</strong>
+			Dump &amp; Merge
+		</div>
+
+		<section class="body">
+			<h1 id="background">Background</h1>
+<p>Work always manages to throw interesting problems my way and this one was particularly interesting. Our telephone server infrastructure and the associated cloud services were spread across two AWS regions - Singapore &amp; Mumbai. This was primarily done to comply with Indian Data Protection Laws which mandated that customer data associated with some critical areas of business must stay within the country. We had run these two regions as independent entities, with code changes being deployed uniformly across them.</p>
+<p>Owing to some changes we had done as part of another unification project, we managed to make the physical servers agnostic of the AWS region. It allowed us to move away from statically assigning servers to a region, and to shift capacity between regions based on demand. As a byproduct of this unification project, we had to reconcile and merge the telephone server data that was currently spread across two databases which were hosted in these two regions.</p>
+<h1 id="the-problem">The Problem</h1>
+<p>We had two MySQL databases housing telephone server related information in each of our two regions. The goal was to unify the view of data so that it would be the same everywhere. Essentially, the result of running a query on this data should yield the same result regardless of the region it was executed in. We had about 9 tables whose data had to be merged.</p>
+<p>There were 2 impediments that faced us -</p>
+<p><strong>Primary key conflicts</strong>: PKs were reused across regions, since they were agnostic of each other, which would cause problems if we went for a blind merge.</p>
+<p><strong>Foreign key dependency</strong>: This is primarily a side effect on the above. Any change in PKs should take the FK relationships into account so that data consistency is maintained at the end of the operation.</p>
+<h1 id="the-solution">The Solution</h1>
+<p>Our databases were slightly asymmetrical such that one region had significantly more data than the other. Adding an offset to the PKs in the smaller DB would ensure that the PKs are continuous and conflict free between the regions. Once the PKs were fixed, we could take a dump and merge the data.</p>
+<p><img src="/db.png" alt="DB"></p>
+<p>To keep the foreign key relationships intact, the changes would have to be propagated to all the tables that referenced these PK columns. The reference relationship can be obtained using the <a href="https://dev.mysql.com/doc/refman/8.0/en/information-schema-key-column-usage-table.html">INFORMATION_SCHEMA.KEY_COLUMN_USAGE</a> table. A simple query like the one detailed in <a href="https://stackoverflow.com/questions/806989/how-to-find-all-tables-that-have-foreign-keys-that-reference-particular-table-co">this SO answer</a> would get us all the tables referring to a particular column of a chosen table. When you&rsquo;re working with multiple tables with multiple relationships, it&rsquo;s always best to visualize this information to make tracking a little easier. The edges on the graph below denote the column of the referring table which refers to the PK of the referred table.</p>
+<p><img src="/fk.png" alt="FK"></p>
+<p>We prepared the list of queries and scripts to be executed beforehand to minimize downtime and to prevent manual errors. MySQL supports <a href="https://dev.mysql.com/doc/refman/8.0/en/sql-prepared-statements.html">Prepared Statements</a> which is sort of like a DSL that allows us to create (or &ldquo;prepare&rdquo;) SQL statements and then execute them. It has basic support for variables, which allows us to write generic SQL queries that can be applied to a lot of tables through the use of variables. This enabled us to cut the canned query size to a large extent.</p>
+<h1 id="the-execution">The Execution</h1>
+<p>Because of the nature of our system, we could never completely freeze access to the DBs. So we started with the activity during a lean period, when traffic was negligible to minimize outward impacts.</p>
+<p>We started by taking a backup of the DBs in both the regions, just to be extra safe. There are a few system level variables that MySQL maintains which dictates the behaviour of the database engine. One of them is <a href="https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_foreign_key_checks">foreign_key_checks</a> which indicates whether foreign key constraints would be respected or not. This constraint flag was disabled during the migration, since there was no way to alter the PK without violating the FK relationships. The canned statements were then executed on the smaller DB to fix the PKs and FKs. Once the PK changes were back-propagated, foreign_key_checks were enabled again. Once the changes were made and canned queries were executed in the smaller DB, it was merely a matter of taking a <code>mysqldump</code> from each region and applying it in the other region.</p>
+<h1 id="lessons-learned">Lessons Learned</h1>
+<ul>
+<li>ALWAYS take backups. The more the better. I&rsquo;ve seen multiple downtimes but messing with production databases and unifying data at this scale remains the single most scariest thing I&rsquo;ve done to date. So, it&rsquo;s always good to err on the side of caution, even if it&rsquo;s a slower and longer path.</li>
+<li>Freeze access to your DBs during data migration: We found that one of the update queries from an automated script had gotten through during the migration phase which resulted in the FK relations getting screwed up. Thankfully, MySQL prevents any updates to a tables once it detects a violation of FK constraints. This allowed us to zero in on the problem and fix it.</li>
+<li>Use prepared statements and canned SQL statements for execution to minimize human error.</li>
+</ul>
+<p>Supposedly, the whole process would&rsquo;ve been a lot easier if we used UUIDs instead of auto incremented ints for our PKs. There&rsquo;s a wealth of opinions on the web arguing <a href="https://medium.com/@Mareks_082/auto-increment-keys-vs-uuid-a74d81f7476a">for</a> and <a href="https://www.percona.com/blog/2019/11/22/uuids-are-popular-but-bad-for-performance-lets-discuss/">against</a> this approach.</p>
+<p>Ping me your thoughts and comments.</p>
+
+		</section>
+
+		<div class="post-tags">
+			
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+<hr><a class="soc" href="https://github.com/crunchbang" title="Github"><i data-feather="github"></i></a>|<a class="soc" href="https://twitter.com/hashb42" title="Twitter"><i data-feather="twitter"></i></a>|<a class="soc" href="https://www.linkedin.com/in/athul-suresh-572622147/" title="LinkedIn"><i data-feather="linkedin"></i></a>|⚡️
+	2021  <a href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+</footer>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-165415128-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+<script>
+      feather.replace()
+</script></div>
+    </body>
+</html>
