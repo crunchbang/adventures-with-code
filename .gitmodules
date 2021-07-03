@@ -1,4 +1,0 @@
-[submodule "public"]
-	path = public
-	url = https://github.com/crunchbang/crunchbang.github.io.git
-	branch = master
