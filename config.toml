@@ -1,6 +1,6 @@
 baseURL = "https://crunchbang.github.io/"
 languageCode = "en-us"
-title = "Adventures with poorly tested code"
+title = "Adventures With Poorly Tested Code"
 theme = "archie"
 
 # Your Google analytics code.

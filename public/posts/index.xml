@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on Adventures with poorly tested code</title>
+    <title>Posts on Adventures With Poorly Tested Code</title>
     <link>https://crunchbang.github.io/posts/</link>
-    <description>Recent content in Posts on Adventures with poorly tested code</description>
+    <description>Recent content in Posts on Adventures With Poorly Tested Code</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Fri, 24 Jul 2020 00:03:32 +0530</lastBuildDate><atom:link href="https://crunchbang.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
